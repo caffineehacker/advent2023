@@ -100,4 +100,30 @@ fn main() {
 
     let part1: u32 = possible_games.map(|(game_number, _)| game_number).sum();
     println!("Part 1: {}", part1);
+
+    let min_cubes = games
+        .iter()
+        .map(|(_, pulls)| {
+            let mut min_tuple = (0, 0, 0);
+            for pull in pulls {
+                if pull.0 > min_tuple.0 {
+                    min_tuple.0 = pull.0;
+                }
+                if pull.1 > min_tuple.1 {
+                    min_tuple.1 = pull.1;
+                }
+                if pull.2 > min_tuple.2 {
+                    min_tuple.2 = pull.2;
+                }
+            }
+            min_tuple
+        })
+        .collect_vec();
+
+    let powers = min_cubes
+        .iter()
+        .map(|min_cubes| min_cubes.0 * min_cubes.1 * min_cubes.2)
+        .collect_vec();
+    let part2: u32 = powers.iter().sum();
+    println!("Part 2: {}", part2);
 }
