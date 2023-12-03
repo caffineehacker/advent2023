@@ -1,6 +1,7 @@
 use clap::Parser;
 use itertools::Itertools;
 use std::{
+    collections::HashMap,
     fs::File,
     io::{BufRead, BufReader},
 };
@@ -30,6 +31,7 @@ fn main() {
         .collect_vec();
 
     let mut part1_total = 0;
+    let mut gear_ratios = HashMap::new();
 
     for row in 0..schematic.len() {
         let current_row = schematic.get(row).unwrap();
@@ -64,7 +66,16 @@ fn main() {
                         let check_value = schematic[check_row][check_column];
                         if !(check_value >= '0' && check_value <= '9') && check_value != '.' {
                             is_near_symbol = true;
-                            break 'check;
+                        }
+                        if check_value == '*' {
+                            if gear_ratios.contains_key(&(check_row, check_column)) {
+                                let ratio: &mut (i32, u32) =
+                                    gear_ratios.get_mut(&(check_row, check_column)).unwrap();
+                                ratio.0 += 1;
+                                ratio.1 *= value;
+                            } else {
+                                gear_ratios.insert((check_row, check_column), (1, value));
+                            }
                         }
                     }
                 }
@@ -81,4 +92,11 @@ fn main() {
     }
 
     println!("Part 1: {}", part1_total);
+
+    let part2 = gear_ratios
+        .iter()
+        .filter(|(_, (count, _))| *count == 2)
+        .map(|(_, (_, value))| *value)
+        .sum::<u32>();
+    println!("Part 2: {}", part2);
 }
