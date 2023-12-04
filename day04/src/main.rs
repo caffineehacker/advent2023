@@ -63,4 +63,24 @@ fn main() {
         .collect();
 
     println!("Part 1: {}", scores.iter().sum::<usize>());
+
+    let mut cards = cards
+        .iter()
+        .map(|(_, winning_numbers, my_numbers)| (1, winning_numbers, my_numbers))
+        .collect_vec();
+
+    for i in 0..cards.len() {
+        let my_numbers = cards[i].2;
+        let winning = cards[i].1;
+        let my_numbers: HashSet<u32> = HashSet::from_iter(my_numbers.iter().cloned());
+        let winning: HashSet<u32> = HashSet::from_iter(winning.iter().cloned());
+        let count: usize = my_numbers.intersection(&winning).count();
+
+        for j in (i + 1)..(i + count + 1) {
+            cards[j].0 += cards[i].0;
+        }
+    }
+
+    let part2: usize = cards.iter().map(|(count, _, _)| count).sum();
+    println!("Part 2: {}", part2);
 }
