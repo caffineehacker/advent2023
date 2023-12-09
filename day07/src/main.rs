@@ -13,6 +13,8 @@ struct Args {
     data_file: String,
     #[arg(long)]
     debug: bool,
+    #[arg(long)]
+    wildj: bool,
 }
 
 fn main() {
@@ -39,7 +41,11 @@ fn main() {
                         } else if c == 'Q' {
                             12
                         } else if c == 'J' {
-                            11
+                            if args.wildj {
+                                1
+                            } else {
+                                11
+                            }
                         } else if c == 'T' {
                             10
                         } else {
@@ -56,24 +62,34 @@ fn main() {
         .iter()
         .map(|(hand, bid)| {
             let card_count = hand.iter().counts();
-            if card_count.len() == 1 {
+            let wilds = card_count.get(&1).map(|w| *w).unwrap_or(0);
+            let non_wild_counts = card_count
+                .iter()
+                .filter(|(card, _)| ***card != 1)
+                .map(|(_, count)| *count)
+                .counts();
+            if non_wild_counts.keys().max().unwrap_or(&0) + wilds == 5 {
                 // 5 of a kind
                 (6, hand.clone(), bid)
-            } else if card_count.iter().any(|(_, count)| *count == 4) {
+            } else if non_wild_counts.keys().max().unwrap() + wilds == 4 {
                 // 4 of a kind
                 (5, hand.clone(), bid)
-            } else if card_count.iter().any(|(_, count)| *count == 3)
-                && card_count.iter().any(|(_, count)| *count == 2)
+            } else if (non_wild_counts.contains_key(&3) && non_wild_counts.contains_key(&2))
+                // Only need one wild since it would match with any other single card to make the pair
+                || (wilds >= 1 && non_wild_counts.contains_key(&3))
+                || (wilds >= 1 && *non_wild_counts.get(&2).unwrap_or(&0) == 2)
+                || (wilds >= 2 && non_wild_counts.contains_key(&2))
             {
                 // Full house
                 (4, hand.clone(), bid)
-            } else if card_count.iter().any(|(_, count)| *count == 3) {
+            } else if non_wild_counts.keys().max().unwrap() + wilds == 3 {
                 // 3 of a kind
                 (3, hand.clone(), bid)
-            } else if card_count.iter().filter(|(_, count)| **count == 2).count() == 2 {
+                // There is no way for a wild to make a two pair and not any hand better
+            } else if *non_wild_counts.get(&2).unwrap_or(&0) == 2 {
                 // Two pair
                 (2, hand.clone(), bid)
-            } else if card_count.iter().any(|(_, count)| *count == 2) {
+            } else if non_wild_counts.contains_key(&2) || wilds >= 1 {
                 // One pair
                 (1, hand.clone(), bid)
             } else {
