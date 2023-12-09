@@ -64,4 +64,66 @@ fn main() {
     }
 
     println!("\nPart 1: {}", steps);
+
+    // Part 2
+    let mut current_nodes = graph
+        .keys()
+        .filter(|key| key.ends_with("A"))
+        .cloned()
+        .collect_vec();
+    let mut first_z_seen = Vec::new();
+    first_z_seen.resize(current_nodes.len(), -1);
+
+    instruction_index = 0;
+    steps = 0;
+    while first_z_seen.iter().any(|z| *z == -1) {
+        steps += 1;
+
+        current_nodes = current_nodes
+            .iter()
+            .map(|node| {
+                let destinations = graph.get(node).unwrap();
+                if instructions[instruction_index] == 'L' {
+                    destinations.0.to_owned()
+                } else {
+                    destinations.1.to_owned()
+                }
+            })
+            .collect_vec();
+
+        if args.debug {
+            println!("Step: {}\n\n{:?}\n\n", steps, current_nodes);
+        }
+
+        for i in 0..current_nodes.len() {
+            if current_nodes[i].ends_with("Z") && first_z_seen[i] == -1 {
+                first_z_seen[i] = steps;
+            }
+        }
+
+        instruction_index += 1;
+        instruction_index %= instructions.len();
+    }
+
+    if args.debug {
+        println!("First Z's: {:?}", first_z_seen);
+    }
+
+    println!("Part 2: {}", lcm(first_z_seen));
+}
+
+pub fn lcm(nums: Vec<i64>) -> i64 {
+    if nums.len() == 1 {
+        return nums[0];
+    }
+    let a = nums[0];
+    let b = lcm(nums.iter().skip(1).cloned().collect_vec());
+    a * b / gcd_of_two_numbers(a, b)
+}
+
+fn gcd_of_two_numbers(a: i64, b: i64) -> i64 {
+    if b == 0 {
+        return a;
+    }
+    gcd_of_two_numbers(b, a % b)
 }
