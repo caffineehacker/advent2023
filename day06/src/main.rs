@@ -27,12 +27,12 @@ fn main() {
     let times = lines[0]
         .split_ascii_whitespace()
         .skip(1)
-        .map(|time| time.parse::<i32>().unwrap())
+        .map(|time| time.parse::<u64>().unwrap())
         .collect_vec();
     let distances = lines[1]
         .split_ascii_whitespace()
         .skip(1)
-        .map(|distance| distance.parse::<i32>().unwrap())
+        .map(|distance| distance.parse::<u64>().unwrap())
         .collect_vec();
 
     let mut race_press_distance = Vec::new();
@@ -59,9 +59,7 @@ fn main() {
             .filter(|(_, distance)| *distance > distance_to_beat)
             .count();
 
-        if args.debug {
-            println!("{}: Beat {} by {} ways", i, distance_to_beat, ways_beat);
-        }
+        println!("{}: Beat {} by {} ways", i, distance_to_beat, ways_beat);
 
         part1 *= ways_beat;
     }
