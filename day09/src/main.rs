@@ -33,7 +33,7 @@ fn main() {
         })
         .collect_vec();
 
-    let part1: i64 = sequences
+    let new_entries = sequences
         .iter()
         .map(|sequence| {
             let mut history = Vec::new();
@@ -56,7 +56,10 @@ fn main() {
             while history_index > 0 {
                 let upper_row_last = *history[history_index - 1].last().unwrap();
                 let current_row_last = *history[history_index].last().unwrap_or(&0);
+                let upper_row_first = *history[history_index - 1].first().unwrap();
+                let current_row_first = *history[history_index].first().unwrap();
                 history[history_index - 1].push(upper_row_last + current_row_last);
+                history[history_index - 1].insert(0, upper_row_first - current_row_first);
 
                 history_index -= 1;
 
@@ -65,9 +68,13 @@ fn main() {
                 }
             }
 
-            *history[0].last().unwrap()
+            (*history[0].first().unwrap(), *history[0].last().unwrap())
         })
-        .sum();
+        .collect_vec();
+
+    let part1: i64 = new_entries.iter().map(|(_, second)| second).sum();
+    let part2: i64 = new_entries.iter().map(|(first, _)| first).sum();
 
     println!("Part 1: {}", part1);
+    println!("Part 2: {}", part2);
 }
