@@ -1,7 +1,7 @@
 use clap::Parser;
 use itertools::Itertools;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet, VecDeque},
     fs::File,
     io::{BufRead, BufReader},
 };
@@ -75,11 +75,18 @@ fn main() {
         current_positions.push((start.0, start.1 + 1, start));
     }
 
+    let mut paths: Vec<Vec<(usize, usize)>> = Vec::new();
+    paths.resize(current_positions.len(), vec![start]);
+
     let mut steps = 0;
     while !current_positions
         .iter()
         .any(|(y, x, _)| *y == start.0 && *x == start.1)
     {
+        for i in 0..current_positions.len() {
+            paths[i].push((current_positions[i].0, current_positions[i].1));
+        }
+
         steps += 1;
         current_positions = current_positions
             .iter()
@@ -103,6 +110,102 @@ fn main() {
     }
 
     println!("Part 1: {}", (steps / 2) + 1);
+
+    let winning_path_index = current_positions
+        .iter()
+        .enumerate()
+        .find(|(_, position)| position.0 == start.0 && position.1 == start.1)
+        .unwrap()
+        .0;
+    let path = paths[winning_path_index].clone();
+
+    if args.debug {
+        for y in 0..grid.len() {
+            for x in 0..grid[y].len() {
+                if path.contains(&(y, x)) {
+                    //print!("{}", grid[y][x]);
+                    print!("X");
+                } else {
+                    print!(".");
+                }
+            }
+            println!("");
+        }
+    }
+
+    // This gives me the information to know which side I care about
+    println!("{:?} -> {:?}", path[0], path[1]);
+
+    let mut covered: HashSet<(usize, usize)> = HashSet::new();
+    // Let's cheat and assume right hand direction
+    let mut direction = (
+        path[path.len() - 1].0 as isize - path[0].0 as isize,
+        path[path.len() - 1].1 as isize - path[0].1 as isize,
+    );
+
+    for i in 1..path.len() {
+        direction = (
+            path[i].0 as isize - path[i - 1].0 as isize,
+            path[i].1 as isize - path[i - 1].1 as isize,
+        );
+
+        // Right hand rule
+        if direction.0 == 1 {
+            // Down
+            flood_fill((path[i].0, path[i].1 - 1), &path, &grid, &mut covered);
+            flood_fill(
+                (path[i - 1].0, path[i - 1].1 - 1),
+                &path,
+                &grid,
+                &mut covered,
+            );
+        } else if direction.0 == -1 {
+            // Up
+            flood_fill((path[i].0, path[i].1 + 1), &path, &grid, &mut covered);
+            flood_fill(
+                (path[i - 1].0, path[i - 1].1 + 1),
+                &path,
+                &grid,
+                &mut covered,
+            );
+        } else if direction.1 == 1 {
+            // Right
+            flood_fill((path[i].0 + 1, path[i].1), &path, &grid, &mut covered);
+            flood_fill(
+                (path[i - 1].0 + 1, path[i - 1].1),
+                &path,
+                &grid,
+                &mut covered,
+            );
+        } else if direction.1 == -1 {
+            // Left
+            flood_fill((path[i].0 - 1, path[i].1), &path, &grid, &mut covered);
+            flood_fill(
+                (path[i - 1].0 - 1, path[i - 1].1),
+                &path,
+                &grid,
+                &mut covered,
+            );
+        }
+    }
+
+    if args.debug {
+        for y in 0..grid.len() {
+            for x in 0..grid[y].len() {
+                if path.contains(&(y, x)) {
+                    // print!("{}", grid[y][x]);
+                    print!("X");
+                } else if covered.contains(&(y, x)) {
+                    print!("!");
+                } else {
+                    print!(".");
+                }
+            }
+            println!("");
+        }
+    }
+
+    println!("Part 2: {}", covered.len());
 }
 
 fn get_start(grid: &Vec<Vec<char>>) -> (usize, usize) {
@@ -115,4 +218,33 @@ fn get_start(grid: &Vec<Vec<char>>) -> (usize, usize) {
     }
 
     panic!("Can't find Start");
+}
+
+fn flood_fill(
+    start: (usize, usize),
+    path: &Vec<(usize, usize)>,
+    grid: &Vec<Vec<char>>,
+    checked: &mut HashSet<(usize, usize)>,
+) {
+    let mut to_check = VecDeque::new();
+    to_check.push_back(start);
+
+    while !to_check.is_empty() {
+        let cell = to_check.pop_back().unwrap();
+        if !checked.contains(&cell) && !path.contains(&cell) {
+            checked.insert(cell.clone());
+            if cell.0 < grid.len() - 1 {
+                to_check.push_back((cell.0 + 1, cell.1));
+            }
+            if cell.0 > 0 {
+                to_check.push_back((cell.0 - 1, cell.1));
+            }
+            if cell.1 < grid[0].len() - 1 {
+                to_check.push_back((cell.0, cell.1 + 1));
+            }
+            if cell.1 > 0 {
+                to_check.push_back((cell.0, cell.1 - 1));
+            }
+        }
+    }
 }
