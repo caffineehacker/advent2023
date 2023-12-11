@@ -12,7 +12,7 @@ struct Args {
     data_file: String,
     #[arg(long)]
     debug: bool,
-    #[arg(long)]
+    #[arg(long, default_value("2"))]
     expand_by: usize,
 }
 
