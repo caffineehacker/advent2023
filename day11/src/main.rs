@@ -12,6 +12,8 @@ struct Args {
     data_file: String,
     #[arg(long)]
     debug: bool,
+    #[arg(long)]
+    expand_by: usize,
 }
 
 fn main() {
@@ -45,7 +47,7 @@ fn main() {
             galaxy_positions
                 .iter_mut()
                 .filter(|(x, _)| *x > i as usize)
-                .for_each(|(x, _)| *x += 1);
+                .for_each(|(x, _)| *x += args.expand_by - 1);
         }
 
         i -= 1;
@@ -61,7 +63,7 @@ fn main() {
             galaxy_positions
                 .iter_mut()
                 .filter(|(_, y)| *y > i as usize)
-                .for_each(|(_, y)| *y += 1);
+                .for_each(|(_, y)| *y += args.expand_by - 1);
         }
 
         i -= 1;
