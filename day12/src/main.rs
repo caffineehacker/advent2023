@@ -1,6 +1,7 @@
 use clap::Parser;
 use itertools::Itertools;
 use std::{
+    collections::HashMap,
     fs::File,
     io::{BufRead, BufReader},
 };
@@ -24,6 +25,7 @@ fn main() {
         .map(|line| line.expect("Failed to read line"))
         .collect();
 
+    let mut memoization = HashMap::new();
     let arrangement_counts = lines
         .iter()
         .map(|line| {
@@ -34,7 +36,7 @@ fn main() {
                 .map(|group| group.parse::<i32>().unwrap())
                 .collect_vec();
 
-            let count = valid_count(springs, groups, args.debug);
+            let count = valid_count(springs, groups, &mut memoization, args.debug);
 
             if args.debug {
                 println!("{} -> {}", line, count);
@@ -44,41 +46,87 @@ fn main() {
         })
         .collect_vec();
 
-    println!("Part 1: {}", arrangement_counts.iter().sum::<u32>());
+    println!("Part 1: {}", arrangement_counts.iter().sum::<u64>());
+
+    // Part 2
+    let arrangement_counts = lines
+        .iter()
+        .map(|line| {
+            let (springs, groups) = line.split_ascii_whitespace().collect_tuple().unwrap();
+            let mut springs = springs.chars().collect_vec();
+            let groups = groups
+                .split(",")
+                .map(|group| group.parse::<i32>().unwrap())
+                .collect_vec();
+
+            springs.push('?');
+            let mut springs = springs.repeat(5);
+            springs.pop();
+            let groups = groups.repeat(5);
+
+            let count = valid_count(springs, groups, &mut memoization, args.debug);
+
+            if args.debug {
+                println!("{} -> {}", line, count);
+            }
+
+            return count;
+        })
+        .collect_vec();
+
+    println!("Part 2: {}", arrangement_counts.iter().sum::<u64>());
 }
 
-fn valid_count(springs: Vec<char>, groups: Vec<i32>, debug: bool) -> u32 {
+fn valid_count(
+    springs: Vec<char>,
+    groups: Vec<i32>,
+    memoization: &mut HashMap<(Vec<char>, Vec<i32>), u64>,
+    debug: bool,
+) -> u64 {
     if debug {
         println!("Processing {:?}, {:?}", springs, groups);
     }
+
+    let memoization_key = (springs.clone(), groups.clone());
+
+    if memoization.contains_key(&memoization_key) {
+        return *memoization.get(&memoization_key).unwrap();
+    }
+
+    let mut return_value = 0;
+
     if springs.len() == 0 {
         if groups.len() == 0 {
             if debug {
                 println!("+1");
             }
-            return 1;
+            return_value = 1;
         } else {
-            return 0;
+            return_value = 0;
         }
+    } else if springs[0] == '.' {
+        return_value = valid_count(springs.split_at(1).1.to_vec(), groups, memoization, debug);
+    } else if springs[0] == '#' {
+        return_value = valid_count_group(springs, groups, memoization, debug);
+    } else if springs[0] == '?' {
+        return_value = valid_count(
+            springs.split_at(1).1.to_vec(),
+            groups.clone(),
+            memoization,
+            debug,
+        ) + valid_count_group(springs, groups, memoization, debug);
     }
 
-    if springs[0] == '.' {
-        return valid_count(springs.split_at(1).1.to_vec(), groups, debug);
-    }
-
-    if springs[0] == '#' {
-        return valid_count_group(springs, groups, debug);
-    }
-
-    if springs[0] == '?' {
-        return valid_count(springs.split_at(1).1.to_vec(), groups.clone(), debug)
-            + valid_count_group(springs, groups, debug);
-    }
-
-    panic!("Unexpected char");
+    memoization.insert(memoization_key, return_value);
+    return return_value;
 }
 
-fn valid_count_group(springs: Vec<char>, groups: Vec<i32>, debug: bool) -> u32 {
+fn valid_count_group(
+    springs: Vec<char>,
+    groups: Vec<i32>,
+    memoization: &mut HashMap<(Vec<char>, Vec<i32>), u64>,
+    debug: bool,
+) -> u64 {
     if debug {
         println!("Processing group {:?}, {:?}", springs, groups);
     }
@@ -115,6 +163,7 @@ fn valid_count_group(springs: Vec<char>, groups: Vec<i32>, debug: bool) -> u32 {
         return valid_count(
             springs.split_at(group + 1).1.to_vec(),
             groups.split_at(1).1.to_vec(),
+            memoization,
             debug,
         );
     }
