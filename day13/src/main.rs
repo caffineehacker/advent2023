@@ -37,13 +37,20 @@ fn main() {
 
     let part1 = grids
         .iter()
-        .map(|grid| score_reflection(grid, args.debug))
+        .map(|grid| score_reflection(grid, false, args.debug))
         .sum::<usize>();
 
     println!("Part 1: {}", part1);
+
+    let part2 = grids
+        .iter()
+        .map(|grid| score_reflection(grid, true, args.debug))
+        .sum::<usize>();
+
+    println!("Part 2: {}", part2);
 }
 
-fn score_reflection(grid: &Vec<Vec<char>>, debug: bool) -> usize {
+fn score_reflection(grid: &Vec<Vec<char>>, with_smudge: bool, debug: bool) -> usize {
     if debug {
         for y in 0..grid.len() {
             for x in 0..grid[0].len() {
@@ -72,19 +79,18 @@ fn score_reflection(grid: &Vec<Vec<char>>, debug: bool) -> usize {
             );
         }
 
-        let mut found_mismatch = false;
-        'top_bottom_loop: while top_index < bottom_index {
+        let mut mismatch_count = 0;
+        while top_index < bottom_index {
             for x in 0..grid[0].len() {
                 if grid[top_index][x] != grid[bottom_index][x] {
-                    found_mismatch = true;
-                    break 'top_bottom_loop;
+                    mismatch_count += 1;
                 }
             }
             top_index += 1;
             bottom_index -= 1;
         }
 
-        if !found_mismatch {
+        if (with_smudge && mismatch_count == 1) || (!with_smudge && mismatch_count == 0) {
             if debug {
                 println!("y == {}", y);
             }
@@ -111,19 +117,18 @@ fn score_reflection(grid: &Vec<Vec<char>>, debug: bool) -> usize {
             );
         }
 
-        let mut found_mismatch = false;
-        'left_right_loop: while left_index < right_index {
+        let mut mismatch_count = 0;
+        while left_index < right_index {
             for y in 0..grid.len() {
                 if grid[y][left_index] != grid[y][right_index] {
-                    found_mismatch = true;
-                    break 'left_right_loop;
+                    mismatch_count += 1;
                 }
             }
             left_index += 1;
             right_index -= 1;
         }
 
-        if !found_mismatch {
+        if (with_smudge && mismatch_count == 1) || (!with_smudge && mismatch_count == 0) {
             if debug {
                 println!("x == {}", x);
             }
@@ -131,7 +136,5 @@ fn score_reflection(grid: &Vec<Vec<char>>, debug: bool) -> usize {
         }
     }
 
-    //panic!("No reflection found!");
-    println!("No reflection?");
-    0
+    panic!("No reflection found!");
 }
