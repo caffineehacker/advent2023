@@ -48,9 +48,35 @@ fn main() {
     let max_x = *grid.iter().map(|((x, _), _)| x).max().unwrap();
     let max_y = *grid.iter().map(|((_, y), _)| y).max().unwrap();
 
+    let part1 = find_energy(&grid, max_x, max_y, 0, 0, Direction::Right);
+    println!("Part 1: {}", part1);
+
+    let mut max_energy = 0;
+    for x in 0..=max_x {
+        max_energy = max_energy.max(find_energy(&grid, max_x, max_y, x, 0, Direction::Down));
+        max_energy = max_energy.max(find_energy(&grid, max_x, max_y, x, max_y, Direction::Up));
+    }
+
+    for y in 0..=max_y {
+        max_energy = max_energy.max(find_energy(&grid, max_x, max_y, 0, y, Direction::Right));
+        max_energy = max_energy.max(find_energy(&grid, max_x, max_y, max_x, y, Direction::Left));
+    }
+
+    let part2 = max_energy;
+    println!("Part 2: {}", part2);
+}
+
+fn find_energy(
+    grid: &HashMap<(isize, isize), char>,
+    max_x: isize,
+    max_y: isize,
+    x: isize,
+    y: isize,
+    direction: Direction,
+) -> usize {
     let mut energized = HashSet::new();
     let mut to_process = Vec::new();
-    to_process.push((0, 0, Direction::Right));
+    to_process.push((x, y, direction));
     let mut processed = HashSet::new();
 
     while !to_process.is_empty() {
@@ -118,9 +144,5 @@ fn main() {
         };
     }
 
-    let part1 = energized.len();
-    println!("Part 1: {}", part1);
-
-    let part2 = 0;
-    println!("Part 2: {}", part2);
+    return energized.len();
 }
