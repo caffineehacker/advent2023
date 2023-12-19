@@ -63,6 +63,8 @@ fn main() {
         .map(|result| result.unwrap())
         .sum::<i64>();
     println!("Part 1: {}", part1);
+
+    part2(&workflows);
 }
 
 fn process_part(part: (i64, i64, i64, i64), workflows: &HashMap<&str, Vec<&str>>) -> Option<i64> {
@@ -112,4 +114,118 @@ fn process_part(part: (i64, i64, i64, i64), workflows: &HashMap<&str, Vec<&str>>
             workflow_index += 1;
         }
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct PossibleValue {
+    min: u64,
+    max: u64,
+}
+
+fn part2(workflows: &HashMap<&str, Vec<&str>>) {
+    let initial_part_range = vec![
+        PossibleValue { min: 1, max: 4000 },
+        PossibleValue { min: 1, max: 4000 },
+        PossibleValue { min: 1, max: 4000 },
+        PossibleValue { min: 1, max: 4000 },
+    ];
+
+    let ranges = part2_inner(initial_part_range, "in", 0, workflows);
+    let part2 = ranges
+        .iter()
+        .map(|range| {
+            (range[0].max + 1 - range[0].min)
+                * (range[1].max + 1 - range[1].min)
+                * (range[2].max + 1 - range[2].min)
+                * (range[3].max + 1 - range[3].min)
+        })
+        .sum::<u64>();
+
+    println!("Part 2: {}", part2);
+}
+
+fn part2_inner(
+    part_range: Vec<PossibleValue>,
+    workflow_name: &str,
+    workflow_index: usize,
+    workflows: &HashMap<&str, Vec<&str>>,
+) -> Vec<Vec<PossibleValue>> {
+    let workflow = workflows.get(workflow_name).unwrap();
+    let step = workflow[workflow_index];
+
+    if step == "A" {
+        return vec![part_range];
+    }
+    if step == "R" {
+        return Vec::new();
+    }
+    if workflow_index == workflow.len() - 1 {
+        return part2_inner(part_range, step, 0, workflows);
+    }
+
+    let compare_index = match step.chars().nth(0).unwrap() {
+        'x' => 0,
+        'm' => 1,
+        'a' => 2,
+        's' => 3,
+        _ => panic!("Unexpected var"),
+    };
+    let target_value = step.split_once(":").unwrap().0[2..].parse::<u64>().unwrap();
+
+    let next_workflow_name = step.split_once(":").unwrap().1;
+    let mut possible_results = Vec::new();
+    if step.chars().nth(1).unwrap() == '>' {
+        if part_range[compare_index].max > target_value {
+            let mut sub_range = part_range.clone();
+            sub_range[compare_index].min = sub_range[compare_index].min.max(target_value + 1);
+            if next_workflow_name == "A" {
+                possible_results.push(sub_range);
+            } else if next_workflow_name != "R" {
+                possible_results.append(&mut part2_inner(
+                    sub_range,
+                    next_workflow_name,
+                    0,
+                    workflows,
+                ));
+            }
+        }
+        if part_range[compare_index].min <= target_value {
+            let mut sub_range = part_range.clone();
+            sub_range[compare_index].max = sub_range[compare_index].max.min(target_value);
+            possible_results.append(&mut part2_inner(
+                sub_range,
+                workflow_name,
+                workflow_index + 1,
+                workflows,
+            ));
+        }
+    }
+    if step.chars().nth(1).unwrap() == '<' {
+        if part_range[compare_index].min < target_value {
+            let mut sub_range = part_range.clone();
+            sub_range[compare_index].max = sub_range[compare_index].max.min(target_value - 1);
+            if next_workflow_name == "A" {
+                possible_results.push(sub_range);
+            } else if next_workflow_name != "R" {
+                possible_results.append(&mut part2_inner(
+                    sub_range,
+                    next_workflow_name,
+                    0,
+                    workflows,
+                ));
+            }
+        }
+        if part_range[compare_index].max >= target_value {
+            let mut sub_range = part_range.clone();
+            sub_range[compare_index].min = sub_range[compare_index].min.max(target_value);
+            possible_results.append(&mut part2_inner(
+                sub_range,
+                workflow_name,
+                workflow_index + 1,
+                workflows,
+            ));
+        }
+    }
+
+    return possible_results;
 }
