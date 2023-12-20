@@ -13,9 +13,11 @@ struct Args {
     data_file: String,
     #[arg(long)]
     debug: bool,
+    #[arg(long)]
+    do_part2: bool,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 enum MachineType {
     FlipFlop,
     Conjunction,
@@ -29,6 +31,7 @@ trait Machine {
     fn add_source(&mut self, source: String);
 }
 
+#[derive(PartialEq, Eq, Clone)]
 struct FlipFlop {
     destinations: Vec<String>,
     state: bool,
@@ -69,6 +72,7 @@ impl Machine for FlipFlop {
     fn add_source(&mut self, source: String) {}
 }
 
+#[derive(PartialEq, Eq, Clone)]
 struct Conjunction {
     destinations: Vec<String>,
     sources_states: HashMap<String, bool>,
@@ -109,6 +113,7 @@ impl Machine for Conjunction {
     }
 }
 
+#[derive(PartialEq, Eq, Clone)]
 struct Broadcast {
     destinations: Vec<String>,
 }
@@ -168,15 +173,24 @@ fn main() {
         })
     }
 
+    if !args.do_part2 {
+        part1(machines, args.debug);
+        return;
+    }
+
+    part2(machines, args.debug);
+}
+
+fn part1(mut machines: HashMap<String, Box<dyn Machine>>, debug: bool) {
     let mut high_pulses = 0;
     let mut low_pulses = 0;
-    for i in 0..1000 {
+    for _ in 0..1000 {
         let mut to_process = VecDeque::new();
         to_process.push_back(("broadcaster".to_owned(), "source".to_owned(), false));
         low_pulses += 1;
         while !to_process.is_empty() {
             let (destination, source, is_high) = to_process.pop_front().unwrap();
-            if args.debug {
+            if debug {
                 println!("{} {} -> {}", source, is_high, destination);
             }
             let machine = machines.get_mut(&destination);
@@ -197,6 +211,65 @@ fn main() {
     }
 
     println!("Part 1: {}", high_pulses * low_pulses);
+}
+
+#[derive(Clone)]
+struct SearchState {
+    known_node_states: HashMap<String, bool>,
+    button_presses: u64,
+    to_process: VecDeque<(String, bool)>,
+}
+
+fn part2(mut machines: HashMap<String, Box<dyn Machine>>, debug: bool) {
+    // We really probably want the conjunction cycle times. From manually analyzing the input we can see that there are a few key conjunctions that actually matter. I suspect they will cycle fairly quickly, but out of sync.
+    let mut conjunction_cycles = HashMap::new();
+    let number_of_conjunctions = machines
+        .iter()
+        .filter(|machine| machine.1.machine_type() == MachineType::Conjunction)
+        .count();
+
+    let mut button_presses = 0;
+    loop {
+        let mut to_process = VecDeque::new();
+        to_process.push_back(("broadcaster".to_owned(), "source".to_owned(), false));
+        button_presses += 1;
+        while !to_process.is_empty() {
+            let (destination, source, is_high) = to_process.pop_front().unwrap();
+            if debug {
+                println!("{} {} -> {}", source, is_high, destination);
+            }
+            let machine = machines.get_mut(&destination);
+            if machine.is_none() {
+                continue;
+            }
+            let machine = machine.unwrap();
+            let outputs = machine.handle_pulse(&source, is_high);
+            if machine.machine_type() == MachineType::Conjunction && !outputs[0].1 {
+                if !conjunction_cycles.contains_key(&destination) {
+                    conjunction_cycles.insert(destination.clone(), button_presses);
+                    println!("{}: {}", destination, button_presses);
+                }
+
+                // We stop after 100000 button presses since we are guessing that our cycles are less than that
+                // This is absolutely a cheat and a hack
+                if conjunction_cycles.len() == number_of_conjunctions || button_presses > 100000 {
+                    for (name, count) in conjunction_cycles.iter() {
+                        println!("{}: {}", name, count);
+                    }
+
+                    println!(
+                        "Part 2: {}",
+                        lcm(conjunction_cycles.values().cloned().collect_vec())
+                    );
+
+                    return;
+                }
+            }
+            for (new_destination, new_is_high) in outputs.into_iter() {
+                to_process.push_back((new_destination, destination.to_owned(), new_is_high));
+            }
+        }
+    }
 }
 
 fn line_to_machine(line: &String) -> (String, Box<dyn Machine>) {
@@ -222,4 +295,20 @@ fn line_to_machine(line: &String) -> (String, Box<dyn Machine>) {
         output.destinations.append(&mut destinations);
         (name, Box::new(output))
     }
+}
+
+pub fn lcm(nums: Vec<i64>) -> i64 {
+    if nums.len() == 1 {
+        return nums[0];
+    }
+    let a = nums[0];
+    let b = lcm(nums.iter().skip(1).cloned().collect_vec());
+    a * b / gcd_of_two_numbers(a, b)
+}
+
+fn gcd_of_two_numbers(a: i64, b: i64) -> i64 {
+    if b == 0 {
+        return a;
+    }
+    gcd_of_two_numbers(b, a % b)
 }
