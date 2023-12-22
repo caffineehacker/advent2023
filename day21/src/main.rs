@@ -41,7 +41,7 @@ fn main() {
 
     let visited_points = get_visited_points(&grid, lines.len() as isize, start_point, 64, false);
 
-    println!("Part 1: {}", visited_points.len());
+    println!("Part 1: {}", visited_points);
 
     // For Part 2
     // We need to know how many parallel universes we can visit since we can cover every square in every universe until we are down to the last 100 or so steps.
@@ -52,8 +52,8 @@ fn main() {
     // 26501365 / 131 gives approximately 202300 which means we can travel 202300 universes in any direction and reach a center with 65 steps left. That's really close to the part one 64 steps and is suspicious...
     // The universe is an odd number of squares wide so we'll switch parity each grid
     // Let's start by figuring out how many squares can be covered for even and odd parity. We'll do that by calling the part 1 code with a large enough number to be sure we'll cover everything.
-    let even = get_visited_points(&grid, lines.len() as isize, start_point, 1000, false).len();
-    let odd = get_visited_points(&grid, lines.len() as isize, start_point, 1001, false).len();
+    let even = get_visited_points(&grid, lines.len() as isize, start_point, 1000, false);
+    let odd = get_visited_points(&grid, lines.len() as isize, start_point, 1001, false);
 
     println!("Odd: {}, Even: {}", odd, even);
 
@@ -78,21 +78,21 @@ fn main() {
     // We get 65 steps left over at the edge so we can only reach places within 65 steps
     // So the corners would be the amount with 65 steps starting from a corner
     // Technically I should figure out from each corner but they come out the same
-    let odd_corner =
-        odd - get_visited_points(&grid, lines.len() as isize, start_point, 65, false).len();
-    let even_corner = get_visited_points(&grid, lines.len() as isize, (0, 0), 64, false).len();
+    let odd_corner = odd - get_visited_points(&grid, lines.len() as isize, start_point, 65, false);
+    let even_corner =
+        even - get_visited_points(&grid, lines.len() as isize, start_point, 64, false);
     println!("Corners, odd: {}, even: {}", odd_corner, even_corner);
     let upper_bound = (202301 * 202301) * odd + (202300 * 202300) * even;
     let missing_partial = 202301 * odd_corner;
-    let added_corners = 202300 * even_corner * 2;
+    let added_corners = 202300 * even_corner;
     let part2 = upper_bound - missing_partial + added_corners;
     println!("Part 2: {}", part2);
 
     // Never mind all that, my numbers are way too big, let's print out a few numbers and using a solver
-    let step65 = get_visited_points(&grid, lines.len() as isize, start_point, 65, true).len();
-    let step196 = get_visited_points(&grid, lines.len() as isize, start_point, 196, true).len();
-    let step327 = get_visited_points(&grid, lines.len() as isize, start_point, 327, true).len();
-    let step458 = get_visited_points(&grid, lines.len() as isize, start_point, 458, true).len();
+    let step65 = get_visited_points(&grid, lines.len() as isize, start_point, 65, true);
+    let step196 = get_visited_points(&grid, lines.len() as isize, start_point, 196, true);
+    let step327 = get_visited_points(&grid, lines.len() as isize, start_point, 327, true);
+    let step458 = get_visited_points(&grid, lines.len() as isize, start_point, 458, true);
 
     println!(
         "Use a polynomial solver: 65 = {}, 196 = {}, 327 = {}, 458 = {}",
@@ -106,9 +106,10 @@ fn get_visited_points(
     start_point: (isize, isize),
     target_steps: isize,
     allow_loop: bool,
-) -> HashSet<(isize, isize)> {
+) -> usize {
     let mut visited_points = HashSet::new();
     let mut to_process = SortedVec::new();
+    let mut counted_points = 0;
     to_process.insert((0, start_point));
 
     while !to_process.is_empty() {
@@ -116,9 +117,7 @@ fn get_visited_points(
         if visited_points.contains(&position) {
             continue;
         }
-        if steps % 2 == target_steps % 2 {
-            visited_points.insert(position);
-        }
+        visited_points.insert(position);
         let effective_position = if allow_loop {
             (
                 position.0.rem_euclid(grid_size),
@@ -135,8 +134,10 @@ fn get_visited_points(
         if *grid_point == '#' {
             continue;
         }
+        if steps % 2 == target_steps % 2 {
+            counted_points += 1;
+        }
         if steps == target_steps {
-            visited_points.insert(position);
             continue;
         }
 
@@ -146,5 +147,5 @@ fn get_visited_points(
         to_process.insert((steps + 1, (position.0, position.1 - 1)));
     }
 
-    return visited_points;
+    return counted_points;
 }
