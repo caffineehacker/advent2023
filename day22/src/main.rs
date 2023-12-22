@@ -109,6 +109,50 @@ fn main() {
     }
     let part1 = removable_blocks.len();
     println!("Part 1: {}", part1);
+
+    let blocks_supp = settled_blocks
+        .iter()
+        .map(|(_, _, block_id, supported_by)| (block_id, supported_by))
+        .sorted()
+        .collect_vec();
+    let blocks_supported = &blocks_supp;
+
+    let part2: usize = (0..blocks.len())
+        .map(|index| {
+            let (block_id, _) = blocks_supported[index];
+            if removable_blocks
+                .iter()
+                .any(|removable| *removable == *block_id)
+            {
+                // If the block was removable then it didn't support anything.
+                return 0;
+            }
+            if args.debug {
+                println!("Processing block {}", block_id);
+            }
+
+            let mut dropped = vec![*block_id];
+            loop {
+                let mut blocks_shifted = false;
+                for block in blocks_supported {
+                    if !dropped.contains(block.0)
+                        && !block.1.is_empty()
+                        && block.1.iter().all(|s| dropped.contains(s))
+                    {
+                        blocks_shifted = true;
+                        dropped.push(*block.0);
+                    }
+                }
+                if !blocks_shifted {
+                    break;
+                }
+            }
+
+            dropped.len() - 1
+        })
+        .sum();
+
+    println!("Part 2: {}", part2);
 }
 
 fn blocks_overlap_xy(
